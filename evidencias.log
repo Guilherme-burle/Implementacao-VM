@@ -1,0 +1,16 @@
+Script started on 2026-11-23 15:55:06-03:00 [TERM="xterm-256color" TTY="/dev/pts/4" COLUMNS="267" LINES="22"]
+[?2004h]0;guilherme@DESKTOP-96RH0LV: ~/SO/VM[01;32mguilherme@DESKTOP-96RH0LV[00m:[01;34m~/SO/VM[00m$ git pushcommit -m "tratamento de erros, readme e makefile"[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cstatus[K[1Padd .script -a evidencias.logclear[Kscript -a evidencias.log[15Pgit add .statuscommit -m "tratamento de erros, readme e makefile"[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cpush[K[Kgit push[K./vm 
+[?2004lEndereco Logico | Pagina | Offset
+-----------------------------------
+              1 |      0 |      1
+            256 |      1 |      0
+          32768 |    128 |      0
+          32769 |    128 |      1
+            128 |      0 |    128
+          65534 |    255 |    254
+          33153 |    129 |    129
+          65536 |      0 |      0
+[?2004h]0;guilherme@DESKTOP-96RH0LV: ~/SO/VM[01;32mguilherme@DESKTOP-96RH0LV[00m:[01;34m~/SO/VM[00m$ exit
+[?2004lexit
+
+Script done on 2026-11-23 15:55:53-03:00 [COMMAND_EXIT_CODE="0"]
