@@ -8,6 +8,6 @@ $(TARGET): vm.c
 	$(CC) $(CFLAGS) vm.c -o $(TARGET)
 
 clean:
-	rm -f $(TARGET) saida.txt
+	rm -f $(TARGET) correct.txt
 
 .PHONY: all clean

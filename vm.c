@@ -95,6 +95,7 @@ int buscar_tlb(EntradaTLB tlb[], int pagina,
     for (int i = 0; i < threads_criadas; i++) {
         if (pthread_join(threads[i], NULL) != 0) {
             fprintf(stderr, "Erro ao aguardar thread.\n");
+            remove("correct.txt");
             exit(EXIT_FAILURE);
         }
     }
@@ -177,6 +178,11 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    if (strcmp(argv[1], "correct.txt") == 0) {
+        fprintf(stderr, "O arquivo de entrada nao pode ser o correct.txt.\n");
+        return EXIT_FAILURE;
+    }
+
     FILE *arquivo = fopen(argv[1], "r");
 
     if (arquivo == NULL) {
@@ -197,6 +203,17 @@ int main(int argc, char *argv[]) {
         fseek(backing_store, 0, SEEK_SET) != 0) {
 
         fprintf(stderr, "BACKING_STORE.bin invalido.\n");
+
+        fclose(arquivo);
+        fclose(backing_store);
+
+        return EXIT_FAILURE;
+    }
+
+    FILE *saida = fopen("correct.txt", "w");
+
+    if (saida == NULL) {
+        perror("Erro ao criar correct.txt");
 
         fclose(arquivo);
         fclose(backing_store);
@@ -332,9 +349,16 @@ int main(int argc, char *argv[]) {
         int endereco_fisico = frame * TAM_PAGINA + offset;
         signed char valor = (signed char)memoria_fisica[frame][offset];
 
-        printf("Virtual address: %" PRIu32
-               " TLB: %d Physical address: %d Value: %d\n",
-               endereco, posicao_tlb, endereco_fisico, valor);
+        if (fprintf(saida,
+                    "Virtual address: %" PRIu32
+                    " TLB: %d Physical address: %d Value: %d\n",
+                    endereco, posicao_tlb, endereco_fisico, valor) < 0) {
+
+            fprintf(stderr, "Erro ao escrever a saida.\n");
+
+            status = EXIT_FAILURE;
+            break;
+        }
     }
 
     if (status == EXIT_SUCCESS) {
@@ -351,16 +375,31 @@ int main(int argc, char *argv[]) {
         double taxa_page_faults = (double)page_faults / total_acessos;
         double taxa_tlb_hits = (double)tlb_hits / total_acessos;
 
-        printf("Number of Translated Addresses = %lu\n", total_acessos);
-        printf("Page Faults = %lu\n", page_faults);
-        printf("Page Fault Rate = %.3f\n", taxa_page_faults);
-        printf("TLB Hits = %lu\n", tlb_hits);
-        printf("TLB Hit Rate = %.3f", taxa_tlb_hits);
+        if (fprintf(saida,
+                    "Number of Translated Addresses = %lu\n"
+                    "Page Faults = %lu\n"
+                    "Page Fault Rate = %.3f\n"
+                    "TLB Hits = %lu\n"
+                    "TLB Hit Rate = %.3f",
+                    total_acessos,
+                    page_faults,
+                    taxa_page_faults,
+                    tlb_hits,
+                    taxa_tlb_hits) < 0) {
+
+            fprintf(stderr, "Erro ao escrever as estatisticas.\n");
+
+            status = EXIT_FAILURE;
+        }
     }
 
-    if (fflush(stdout) == EOF || ferror(stdout)) {
-        fprintf(stderr, "Erro ao escrever a saida.\n");
+    if (fclose(saida) == EOF) {
+        fprintf(stderr, "Erro ao finalizar correct.txt.\n");
         status = EXIT_FAILURE;
+    }
+
+    if (status != EXIT_SUCCESS) {
+        remove("correct.txt");
     }
 
     free(linha);

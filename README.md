@@ -54,17 +54,6 @@ O arquivo `BACKING_STORE.bin` deve estar no diretório em que o programa é exec
 
 O programa apresenta os endereços virtuais, as posições na TLB, os endereços físicos, os valores recuperados da memória e as estatísticas finais.
 
-## Teste
-
-Para comparar a saída do programa com a referência fornecida pelo professor:
-
-```bash
-./vm addresses.txt lru fifo > saida.txt
-diff --strip-trailing-cr correct.txt saida.txt
-```
-
-Caso não sejam apresentadas diferenças, a saída corresponde à referência.
-
 ## Arquivos
 
 - `vm.c`: código-fonte do gerenciador de memória virtual.
