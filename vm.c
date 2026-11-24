@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <pthread.h>
 
 #define TAM_PAGINA 256
 #define NUM_PAGINAS 256
@@ -15,13 +16,63 @@ typedef struct {
     unsigned long ultimo_uso;
 } EntradaTLB;
 
+typedef struct {
+    const EntradaTLB *entrada;
+    int pagina;
+    int encontrou;
+} DadosBusca;
+
+void *buscar_entrada(void *arg) {
+    DadosBusca *dados = arg;
+
+    dados->encontrou = (dados->entrada->pagina == dados->pagina);
+
+    return NULL;
+}
+
 int buscar_tlb(EntradaTLB tlb[], int pagina,
                unsigned long relogio) {
+    pthread_t threads[TAM_TLB];
+    DadosBusca dados[TAM_TLB];
+
+    int threads_criadas = 0;
+
     for (int i = 0; i < TAM_TLB; i++) {
-        if (tlb[i].pagina == pagina) {
-            tlb[i].ultimo_uso = relogio;
-            return tlb[i].frame;
+        dados[i].entrada = &tlb[i];
+        dados[i].pagina = pagina;
+        dados[i].encontrou = 0;
+
+        if (pthread_create(&threads[i], NULL,
+                           buscar_entrada, &dados[i]) != 0) {
+            break;
         }
+
+        threads_criadas++;
+    }
+
+    for (int i = 0; i < threads_criadas; i++) {
+        if (pthread_join(threads[i], NULL) != 0) {
+            fprintf(stderr, "Erro ao aguardar thread.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (threads_criadas != TAM_TLB) {
+        return -2;
+    }
+
+    int posicao = -1;
+
+    for (int i = 0; i < TAM_TLB; i++) {
+        if (dados[i].encontrou) {
+            posicao = i;
+            break;
+        }
+    }
+
+    if (posicao != -1) {
+        tlb[posicao].ultimo_uso = relogio;
+        return tlb[posicao].frame;
     }
 
     return -1;
@@ -155,6 +206,14 @@ int main(int argc, char *argv[]) {
         total_acessos++;
 
         int frame = buscar_tlb(tlb, pagina, relogio);
+
+        if (frame == -2) {
+            fprintf(stderr, "Erro ao criar threads para busca na TLB.\n");
+            fclose(arquivo);
+            fclose(backing_store);
+            return 1;
+        }
+
         int tlb_hit = (frame != -1);
 
         if (tlb_hit) {
