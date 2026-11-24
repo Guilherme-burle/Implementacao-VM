@@ -12,11 +12,14 @@ typedef struct {
     int pagina;
     int frame;
     unsigned long entrada;
+    unsigned long ultimo_uso;
 } EntradaTLB;
 
-int buscar_tlb(EntradaTLB tlb[], int pagina) {
+int buscar_tlb(EntradaTLB tlb[], int pagina,
+               unsigned long relogio) {
     for (int i = 0; i < TAM_TLB; i++) {
         if (tlb[i].pagina == pagina) {
+            tlb[i].ultimo_uso = relogio;
             return tlb[i].frame;
         }
     }
@@ -25,7 +28,7 @@ int buscar_tlb(EntradaTLB tlb[], int pagina) {
 }
 
 void inserir_tlb(EntradaTLB tlb[], int pagina, int frame,
-                 unsigned long relogio) {
+                 unsigned long relogio, int tlb_lru) {
     int posicao = -1;
 
     for (int i = 0; i < TAM_TLB; i++) {
@@ -39,8 +42,14 @@ void inserir_tlb(EntradaTLB tlb[], int pagina, int frame,
         posicao = 0;
 
         for (int i = 1; i < TAM_TLB; i++) {
-            if (tlb[i].entrada < tlb[posicao].entrada) {
-                posicao = i;
+            if (tlb_lru) {
+                if (tlb[i].ultimo_uso < tlb[posicao].ultimo_uso) {
+                    posicao = i;
+                }
+            } else {
+                if (tlb[i].entrada < tlb[posicao].entrada) {
+                    posicao = i;
+                }
             }
         }
     }
@@ -48,6 +57,7 @@ void inserir_tlb(EntradaTLB tlb[], int pagina, int frame,
     tlb[posicao].pagina = pagina;
     tlb[posicao].frame = frame;
     tlb[posicao].entrada = relogio;
+    tlb[posicao].ultimo_uso = relogio;
 }
 
 void invalidar_tlb(EntradaTLB tlb[], int pagina) {
@@ -55,6 +65,8 @@ void invalidar_tlb(EntradaTLB tlb[], int pagina) {
         if (tlb[i].pagina == pagina) {
             tlb[i].pagina = -1;
             tlb[i].frame = -1;
+            tlb[i].entrada = 0;
+            tlb[i].ultimo_uso = 0;
         }
     }
 }
@@ -84,6 +96,7 @@ int main(int argc, char *argv[]) {
     }
 
     int algoritmo_lru = (strcmp(argv[2], "lru") == 0);
+    int tlb_lru = (strcmp(argv[3], "lru") == 0);
 
     int tabela_paginas[NUM_PAGINAS];
     int frame_para_pagina[NUM_FRAMES];
@@ -106,6 +119,7 @@ int main(int argc, char *argv[]) {
         tlb[i].pagina = -1;
         tlb[i].frame = -1;
         tlb[i].entrada = 0;
+        tlb[i].ultimo_uso = 0;
     }
 
     int frames_utilizados = 0;
@@ -140,7 +154,7 @@ int main(int argc, char *argv[]) {
         relogio++;
         total_acessos++;
 
-        int frame = buscar_tlb(tlb, pagina);
+        int frame = buscar_tlb(tlb, pagina, relogio);
         int tlb_hit = (frame != -1);
 
         if (tlb_hit) {
@@ -191,7 +205,7 @@ int main(int argc, char *argv[]) {
                 frame_para_pagina[frame] = pagina;
             }
 
-            inserir_tlb(tlb, pagina, frame, relogio);
+            inserir_tlb(tlb, pagina, frame, relogio, tlb_lru);
         }
 
         tempo_uso[frame] = relogio;
@@ -217,9 +231,10 @@ int main(int argc, char *argv[]) {
     printf("\nTotal de acessos: %d\n", total_acessos);
     printf("Page faults: %d\n", page_faults);
     printf("Frames utilizados: %d\n", frames_utilizados);
-    printf("Substituicoes (%s): %d\n",
+    printf("Substituicoes de paginas (%s): %d\n",
            algoritmo_lru ? "LRU" : "FIFO", substituicoes);
     printf("Page fault rate: %.3f\n", taxa_page_faults);
+    printf("Algoritmo da TLB: %s\n", tlb_lru ? "LRU" : "FIFO");
     printf("TLB hits: %d\n", tlb_hits);
     printf("TLB hit rate: %.3f\n", taxa_tlb_hits);
 
