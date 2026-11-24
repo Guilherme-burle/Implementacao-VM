@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdint.h>
 
@@ -25,14 +24,23 @@ int main(int argc, char *argv[]) {
     }
 
     int tabela_paginas[NUM_PAGINAS];
+    int frame_para_pagina[NUM_FRAMES];
+
     unsigned char memoria_fisica[NUM_FRAMES][TAM_PAGINA];
 
     for (int i = 0; i < NUM_PAGINAS; i++) {
         tabela_paginas[i] = -1;
     }
 
-    int proximo_frame = 0;
+    for (int i = 0; i < NUM_FRAMES; i++) {
+        frame_para_pagina[i] = -1;
+    }
+
+    int frames_utilizados = 0;
+    int proxima_vitima = 0;
     int page_faults = 0;
+    int substituicoes = 0;
+
     uint32_t endereco;
 
     printf("Endereco Logico | Pagina | Offset | Frame | Endereco Fisico | Valor\n");
@@ -45,12 +53,24 @@ int main(int argc, char *argv[]) {
         int offset = endereco_16 & 0xFF;
 
         if (tabela_paginas[pagina] == -1) {
-            if (proximo_frame >= NUM_FRAMES) {
-                printf("\nMemoria fisica cheia. Substituicao ainda nao implementada.\n");
-                break;
-            }
+            int frame;
 
-            int frame = proximo_frame++;
+            page_faults++;
+
+            if (frames_utilizados < NUM_FRAMES) {
+                frame = frames_utilizados;
+                frames_utilizados++;
+            } else {
+                frame = proxima_vitima;
+
+                int pagina_antiga = frame_para_pagina[frame];
+
+                tabela_paginas[pagina_antiga] = -1;
+
+                substituicoes++;
+
+                proxima_vitima = (proxima_vitima + 1) % NUM_FRAMES;
+            }
 
             fseek(backing_store, pagina * TAM_PAGINA, SEEK_SET);
 
@@ -58,7 +78,7 @@ int main(int argc, char *argv[]) {
                   TAM_PAGINA, backing_store);
 
             tabela_paginas[pagina] = frame;
-            page_faults++;
+            frame_para_pagina[frame] = pagina;
         }
 
         int frame = tabela_paginas[pagina];
@@ -74,7 +94,8 @@ int main(int argc, char *argv[]) {
 
     printf("\nEstatisticas:\n");
     printf("Page faults: %d\n", page_faults);
-    printf("Frames utilizados: %d\n", proximo_frame);
+    printf("Frames utilizados: %d\n", frames_utilizados);
+    printf("Substituicoes FIFO: %d\n", substituicoes);
 
     fclose(arquivo);
     fclose(backing_store);
